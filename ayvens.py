@@ -1,5 +1,5 @@
 import requests
-import csv
+from pymongo import MongoClient
 
 def fetch_car_data(page):
     url = "https://www.ayvens.com/api2/cars/queries/groups/"
@@ -14,14 +14,12 @@ def fetch_car_data(page):
     response = requests.put(url, params=params, headers=headers)
     return response.json() if response.status_code == 200 else None
 
-def write_to_csv(cars, filename):
-    with open(filename, 'a', newline='', encoding='utf-8') as csvfile:
-        fieldnames = cars[0].keys() if cars else []
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        if csvfile.tell() == 0:
-            writer.writeheader()
-        for car in cars:
-            writer.writerow(car)
+def save_to_mongodb(cars, db_name, collection_name):
+    client = MongoClient('mongodb://localhost:27017/')
+    db = client[db_name]
+    collection = db[collection_name]
+    if cars:
+        collection.insert_many(cars)
 
 def main():
     page = 1
@@ -34,16 +32,16 @@ def main():
         
         cars = car_data['groups']
         all_cars.extend(cars)
-        write_to_csv(cars, 'car_data.csv')
-        print("car length", len(cars))
+        save_to_mongodb(cars, 'car_db', 'ayvens_car_data')
+        print("Cars saved:", len(cars))
         
         if len(cars) < 24:
             break
         
         page += 1
 
-    print(f"Total cars fetched: {len(all_cars)}")
-    print("Car data has been successfully written to car_data.csv")
+    print(f"Total cars fetched and saved: {len(all_cars)}")
+    print("Car data has been successfully saved to MongoDB")
 
 if __name__ == "__main__":
     main()

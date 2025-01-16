@@ -1,4 +1,11 @@
 import requests
+from pymongo import MongoClient
+import json
+
+# MongoDB setup
+client = MongoClient('mongodb://localhost:27017/')  # Adjust this if your MongoDB is not on localhost
+db = client['car_db']  # Create or use a database named 'turo_database'
+collection = db['ouicar_car_data']  # Create or use a collection named 'car_listings'
 
 # Request URL
 url = "https://turo.com/api/v2/search"
@@ -59,7 +66,6 @@ cookies = {
     "sid": "yaSUsAI_Qvu9_HnBdmfyIg",
     "preferredLocale": "en-US",
     "__cf_bm": "rBkbLGcUbiQ3MddnIEy8IckLkQUUpSJcTtCFxmThreM-1736947561-1.0.1.1-uuswn9KUMaq08b.6r0PvX30vvydNlx6K42a50NOs8ajkv2jyrnfB6URuUGWBWtJn8k_ex6k3Ay63CLOJE2DOL.5g_8UmI.o3Qy61z0u9Ucg",
-    # Add other cookies as needed
 }
 
 # Send the POST request
@@ -68,7 +74,14 @@ response = requests.post(url, json=payload, headers=headers, cookies=cookies)
 # Handling the response
 if response.status_code == 200:
     print("Request succeeded!")
-    # print(response.json())  # Parse JSON response
+    data = response.json()  # Parse JSON response
+    
+    # Save to MongoDB
+    result = collection.insert_one(data)
+    print(f"Data saved to MongoDB with id: {result.inserted_id}")
 else:
     print(f"Request failed with status code: {response.status_code}")
-    # print(response.text)  # Print raw response for debugging
+    print(response.text)  # Print raw response for debugging
+
+# Close the MongoDB connection
+client.close()
